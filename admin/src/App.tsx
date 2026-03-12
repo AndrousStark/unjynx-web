@@ -81,8 +81,10 @@ const App: React.FC = () => {
 
   const currentTheme = isDarkMode ? darkTheme : lightTheme;
 
+  const basePath = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
+
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={basePath}>
       <ConfigProvider theme={currentTheme}>
         <AntApp>
           <Refine

@@ -137,8 +137,10 @@ const resources = [
   },
 ];
 
+const basePath = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
+
 export const App: React.FC = () => (
-  <BrowserRouter>
+  <BrowserRouter basename={basePath}>
     <ConfigProvider theme={customTheme}>
       <AntApp>
         <Refine
