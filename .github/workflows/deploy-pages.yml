@@ -51,6 +51,7 @@ jobs:
           VITE_API_URL: https://api.unjynx.me
           VITE_LOGTO_ENDPOINT: https://auth.unjynx.me
           VITE_LOGTO_APP_ID: unjynx-admin-web
+          VITE_LOGTO_API_RESOURCE: https://api.unjynx.me
 
       - name: Install dev-portal dependencies
         working-directory: dev-portal
@@ -64,6 +65,7 @@ jobs:
           VITE_API_URL: https://api.unjynx.me
           VITE_LOGTO_ENDPOINT: https://auth.unjynx.me
           VITE_LOGTO_APP_ID: unjynx-dev-portal
+          VITE_LOGTO_API_RESOURCE: https://api.unjynx.me
 
       - name: Merge builds into single output
         run: |
@@ -73,6 +75,19 @@ jobs:
           cp -r admin/dist/* _site/admin/
           mkdir -p _site/dev
           cp -r dev-portal/dist/* _site/dev/
+
+          # SPA routing for GitHub Pages — copy index.html to sub-paths
+          # so OIDC callback and login routes load the SPA correctly
+          for path in callback login; do
+            mkdir -p _site/admin/$path
+            cp _site/admin/index.html _site/admin/$path/index.html
+            mkdir -p _site/dev/$path
+            cp _site/dev/index.html _site/dev/$path/index.html
+          done
+
+          # Root 404.html fallback for any other SPA routes
+          cp _site/admin/index.html _site/admin/404.html
+          cp _site/dev/index.html _site/dev/404.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
