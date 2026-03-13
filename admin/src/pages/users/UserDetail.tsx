@@ -18,13 +18,13 @@ import {
 } from "@ant-design/icons";
 import { useOne, useUpdate, useCustom } from "@refinedev/core";
 import { StatusBadge } from "../../components/common/StatusBadge";
-import { formatDate, priorityColor } from "../../utils/formatters";
+import { formatDate, formatDateTime, priorityColor } from "../../utils/formatters";
 import { API_BASE_URL, API_ADMIN_PREFIX } from "../../utils/constants";
 import { UserProfileTab } from "./UserProfileTab";
 import { ResetPasswordModal } from "./ResetPasswordModal";
 import { DeleteUserModal } from "./DeleteUserModal";
 import { AssignTaskModal } from "./AssignTaskModal";
-import type { UserRecord, PlanType, TaskSummary } from "../../types";
+import type { UserRecord, PlanType, TaskSummary, AuditLogRecord } from "../../types";
 
 const { Text } = Typography;
 
@@ -62,6 +62,16 @@ export const UserDetail: React.FC<UserDetailProps> = ({
       method: "get",
       queryOptions: {
         enabled: !!userId && activeTab === "tasks",
+      } as never,
+    });
+
+  const { data: activityData, isLoading: activityLoading } =
+    useCustom<AuditLogRecord[]>({
+      url: `${API_BASE_URL}${API_ADMIN_PREFIX}/users/${userId}/activity`,
+      method: "get",
+      config: { query: { limit: 50 } },
+      queryOptions: {
+        enabled: !!userId && activeTab === "activity",
       } as never,
     });
 
@@ -315,12 +325,71 @@ export const UserDetail: React.FC<UserDetailProps> = ({
               {
                 key: "activity",
                 label: "Activity",
-                children: (
-                  <Empty
-                    description="Activity log coming soon"
-                    style={{ marginTop: 40 }}
-                  />
-                ),
+                children: (() => {
+                  const activities: AuditLogRecord[] = Array.isArray(activityData?.data)
+                    ? activityData.data
+                    : [];
+                  return activities.length === 0 && !activityLoading ? (
+                    <Empty description="No activity recorded" style={{ marginTop: 40 }} />
+                  ) : (
+                    <Table
+                      dataSource={activities}
+                      rowKey="id"
+                      size="small"
+                      loading={activityLoading}
+                      pagination={{ pageSize: 15 }}
+                      scroll={{ x: 500 }}
+                      columns={[
+                        {
+                          title: "Time",
+                          dataIndex: "createdAt",
+                          key: "createdAt",
+                          width: 160,
+                          render: (date: string) => formatDateTime(date),
+                        },
+                        {
+                          title: "Action",
+                          dataIndex: "action",
+                          key: "action",
+                          width: 140,
+                          render: (action: string) => <Tag color="purple">{action}</Tag>,
+                        },
+                        {
+                          title: "Resource",
+                          key: "resource",
+                          width: 130,
+                          render: (_: unknown, record: AuditLogRecord) => (
+                            <Space size={4}>
+                              <Tag>{record.entityType}</Tag>
+                              {record.entityId && (
+                                <Text type="secondary" style={{ fontSize: 11 }}>
+                                  {record.entityId.slice(0, 8)}
+                                </Text>
+                              )}
+                            </Space>
+                          ),
+                        },
+                        {
+                          title: "Details",
+                          dataIndex: "metadata",
+                          key: "metadata",
+                          render: (metadata: string | undefined) => {
+                            if (!metadata) return <Text type="secondary">-</Text>;
+                            try {
+                              return (
+                                <Text style={{ fontSize: 12 }}>
+                                  {JSON.stringify(JSON.parse(metadata)).slice(0, 60)}
+                                </Text>
+                              );
+                            } catch {
+                              return <Text style={{ fontSize: 12 }}>{metadata.slice(0, 60)}</Text>;
+                            }
+                          },
+                        },
+                      ]}
+                    />
+                  );
+                })(),
               },
             ]}
           />
